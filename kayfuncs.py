@@ -11,7 +11,9 @@ from nltk.corpus import stopwords
 from nltk.stem.porter import *
 import re
 import itertools as itr
-
+import operator
+from collections import Counter
+import math
 
 #==============================================================================
 # functions
@@ -76,4 +78,51 @@ def graph_analysis(text, win_size):
     for u, v, a in word_graph.edges(data=True):
         lines_of_new_text = " ".join((rep_word(u+v, a['weight']),
                                       lines_of_new_text))
+#    deg = nx.degree_centrality(word_graph)
+#    clns = nx.closeness_centrality(word_graph)
+    return lines_of_new_text#, deg, clns
+    
+# path analysis:
+def path_analysis(text, win_size):
+    lines_of_new_text = ''
+    tokenized_text = tokenizer(text= text)
+    word_graph = nx.DiGraph()
+    for wrd in tokenized_text:
+        if word_graph.has_edge(wrd, wrd):
+            word_graph[wrd][wrd]['weight'] += 1
+        else:
+            word_graph.add_edge(wrd, wrd, weight=1)
+    
+    for i in range(len(tokenized_text)-win_size+1):
+        word_win = tokenized_text[i: i+win_size]
+        combs = list(itr.product(word_win[0:1], word_win[1:]))
+        for cmb in combs:
+            if word_graph.has_edge(cmb[0], cmb[1]):
+                word_graph[cmb[0]][cmb[1]]['weight'] += 1
+            else:
+                word_graph.add_edge(cmb[0], cmb[1], weight=1)
+
+#    for u, v, a in word_graph.edges(data=True):
+#        lines_of_new_text = " ".join((rep_word(u+v, a['weight']),
+#                                      lines_of_new_text))
+    deg  = nx.degree_centrality(word_graph)
+    clns = nx.closeness_centrality(word_graph)
+    deg_cen = dict(Counter(deg) + Counter(clns))
+    s_deg_cen = sorted(deg_cen.items(), key=operator.itemgetter(1), reverse=True)
+    tops = s_deg_cen[0:int(math.ceil(len(word_graph)*.2))]
+    for t in tops:
+#        print "<<=====================>>", t[0]
+        sh_path = nx.shortest_path(word_graph, target=t[0])
+        for sh_p in sh_path:
+            if len(sh_path[sh_p]) == 1:
+                lines_of_new_text = " ".join((sh_path[sh_p][0]+sh_path[sh_p][0],
+                                             lines_of_new_text))
+#            print 'inline:'
+            for idx in range(len(sh_path[sh_p])-1):
+#                print sh_path[sh_p][idx:idx+2]
+                lines_of_new_text = " ".join((sh_path[sh_p][idx]+sh_path[sh_p][idx+1],
+                                             lines_of_new_text))
+            
+#    nx.draw(word_graph, with_labels = True)
+#    plt.show()
     return lines_of_new_text

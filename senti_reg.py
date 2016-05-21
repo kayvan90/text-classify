@@ -59,13 +59,29 @@ def build_data_frame_from_text_graph(cls, addr):
     index = []
     for file_name, text in read_files(addr + cls):
 #        new_text = graph_analysis(text, 3)
-        new_text = path_analysis(text, 3)
+        new_text = path_analysis(text, 2)
+        print "one file done"
         rows.append({'text': new_text, 'class': cls})
         index.append(file_name)
 
     data_frame = DataFrame(rows, index=index)
     return data_frame
     
+def build_one_graph_for_a_class(cls, addr):
+    rows  = []
+    index = []
+    all_text = ""
+    for file_name, text in read_files(addr + cls):
+        all_text = " ".join((text, all_text))
+    print "whole class is read! building graph..."
+#   new_text = graph_analysis(text, 3)
+    new_text = path_analysis(all_text, 2)
+    print "one class done"
+    rows.append({'text': new_text, 'class': cls})
+    index.append(file_name)
+
+    data_frame = DataFrame(rows, index=index)
+    return data_frame
 
 
 #==============================================================================
@@ -103,12 +119,13 @@ for cls in sources:
     # regular approach:
 #     data = data.append(build_data_frame(cls, addr))
     # graph based approach:
-   data = data.append(build_data_frame_from_text_graph(cls, addr))
+#   data = data.append(build_data_frame_from_text_graph(cls, addr))
+   data = data.append(build_one_graph_for_a_class(cls, addr))
 
 data = data.reindex(np.random.permutation(data.index))
 
 count_vectorizer = CountVectorizer()
-counts = count_vectorizer.fit_transform(data['text'].values)
+#counts = count_vectorizer.fit_transform(data['text'].values)
 
 # train a classifier:
 #ngram_range=(1, 3)
